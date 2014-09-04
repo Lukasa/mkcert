@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/Lukasa/trustdeck/certs"
+	"github.com/Lukasa/mkcert/certs"
 	"log"
 	"net/http"
 	"runtime"

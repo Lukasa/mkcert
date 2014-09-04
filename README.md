@@ -1,4 +1,4 @@
-# Trustdeck
+# Mkcert
 
-Trustdeck is a web service that allows you to build customised TLS trust
+mkcert.org is a web service that allows you to build customised TLS trust
 stores.
