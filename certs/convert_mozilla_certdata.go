@@ -62,7 +62,6 @@ var (
 	ignoreList map[string]string
 
 	includedUntrustedFlag = flag.Bool("include-untrusted", false, "If set, untrusted certificates will also be included in the output")
-	toFiles               = flag.Bool("to-files", false, "If set, individual certificate files will be created in the current directory")
 	ignoreListFilename    = flag.String("ignore-list", "", "File containing a list of certificates to ignore")
 )
 
@@ -174,7 +173,6 @@ func ParseInput(inFile io.Reader) (license, cvsId string, objects []*Object) {
 func OutputTrustedCerts(out *os.File, objects []*Object, ignoreList map[string]interface{}) {
 	certs := filterObjectsByClass(objects, "CKO_CERTIFICATE")
 	trusts := filterObjectsByClass(objects, "CKO_NSS_TRUST")
-	filenames := make(map[string]bool)
 
 	for _, cert := range certs {
 		derBytes := cert.attrs["CKA_VALUE"].value
@@ -239,38 +237,6 @@ func OutputTrustedCerts(out *os.File, objects []*Object, ignoreList map[string]i
 		}
 
 		block := &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}
-
-		if *toFiles {
-			if strings.HasPrefix(label, "\"") {
-				label = label[1:]
-			}
-			if strings.HasSuffix(label, "\"") {
-				label = label[:len(label)-1]
-			}
-			// The label may contain hex-escaped, UTF-8 charactors.
-			label = unescapeLabel(label)
-			label = strings.Replace(label, " ", "_", -1)
-			label = strings.Replace(label, "/", "_", -1)
-
-			filename := label
-			for i := 2; ; i++ {
-				if _, ok := filenames[filename]; !ok {
-					break
-				}
-
-				filename = label + "-" + strconv.Itoa(i)
-			}
-			filenames[filename] = true
-
-			file, err := os.Create(filename + ".pem")
-			if err != nil {
-				log.Fatalf("Failed to create output file: %s\n", err)
-			}
-			pem.Encode(file, block)
-			file.Close()
-			out.WriteString(filename + ".pem\n")
-			continue
-		}
 
 		out.WriteString("\n")
 
