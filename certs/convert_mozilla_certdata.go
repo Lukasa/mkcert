@@ -171,7 +171,7 @@ func ParseInput(inFile io.Reader) (license, cvsId string, objects []*Object) {
 
 // outputTrustedCerts writes a series of PEM encoded certificates to out by
 // finding certificates and their trust records in objects.
-func OutputTrustedCerts(out *os.File, objects []*Object) {
+func OutputTrustedCerts(out *os.File, objects []*Object, ignoreList map[string]interface{}) {
 	certs := filterObjectsByClass(objects, "CKO_CERTIFICATE")
 	trusts := filterObjectsByClass(objects, "CKO_NSS_TRUST")
 	filenames := make(map[string]bool)
@@ -183,12 +183,8 @@ func OutputTrustedCerts(out *os.File, objects []*Object) {
 		digest := hash.Sum(nil)
 
 		label := string(cert.attrs["CKA_LABEL"].value)
-		if comment, present := ignoreList[strings.Trim(label, "\"")]; present {
-			var sep string
-			if len(comment) > 0 {
-				sep = ": "
-			}
-			log.Printf("Skipping explicitly ignored certificate: %s%s%s", label, sep, comment)
+		if _, present := ignoreList[strings.Trim(label, "\"")]; present {
+			log.Printf("Skipping explicitly ignored certificate: %s", label)
 			continue
 		}
 

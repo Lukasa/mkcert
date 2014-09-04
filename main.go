@@ -11,6 +11,8 @@ import (
 const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
 
 func main() {
+	ignoreList := map[string]interface{}{}
+
 	// Before we do anything, TURN ON THE CPUS.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -23,5 +25,5 @@ func main() {
 	_, _, objects := certs.ParseInput(resp.Body)
 	resp.Body.Close()
 
-	certs.OutputTrustedCerts(os.Stdout, objects)
+	certs.OutputTrustedCerts(os.Stdout, objects, ignoreList)
 }
