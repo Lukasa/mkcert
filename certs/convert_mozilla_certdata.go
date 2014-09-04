@@ -168,6 +168,18 @@ func ParseInput(inFile io.Reader) (license, cvsId string, objects []*Object) {
 	return
 }
 
+// GetAllLabels returns all the certificate labels from the file.
+func OutputAllLabels(objects []*Object) (labels []string) {
+	certs := filterObjectsByClass(objects, "CKO_CERTIFICATE")
+
+	for _, cert := range certs {
+		label := string(cert.attrs["CKA_LABEL"].value)
+		labels = append(labels, label)
+	}
+
+	return
+}
+
 // outputTrustedCerts writes a series of PEM encoded certificates to out by
 // finding certificates and their trust records in objects.
 func OutputTrustedCerts(out *os.File, objects []*Object, ignoreList map[string]interface{}) {
