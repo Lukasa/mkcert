@@ -184,7 +184,7 @@ func ParseInput(inFile io.Reader) (license, cvsId string, objects []*Object) {
 // GetAllLabels returns all the certificate labels from the parsed certificates.
 func OutputAllLabels(certs CertMap) (labels []string) {
 	for _, cert := range certs {
-		labels = append(labels, cert.Label)
+		labels = append(labels, strings.Trim(cert.Label, "\""))
 	}
 
 	return

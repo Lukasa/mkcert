@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/Lukasa/trustdeck/certs"
 	"log"
 	"net/http"
@@ -11,6 +12,10 @@ import (
 const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
 
 var certificates certs.CertMap = nil
+
+type CertificateList struct {
+	Certificates []string
+}
 
 func updateCertificates() {
 	// Now, grab the certificates.
@@ -57,6 +62,17 @@ func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	certs.WriteCerts(w, certificates, true, exceptions)
 }
 
+func listAllCerts(w http.ResponseWriter, r *http.Request) {
+	labels := certs.OutputAllLabels(certificates)
+	b, err := json.Marshal(CertificateList{labels})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(b)
+}
+
 func main() {
 	// Before we do anything, TURN ON THE CPUS.
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -65,6 +81,7 @@ func main() {
 	updateCertificates()
 
 	// Start the HTTP server.
+	http.HandleFunc("/labels/", listAllCerts)
 	http.HandleFunc("/generate/", serveWhitelistCertificates)
 	http.HandleFunc("/generate/all/except/", serveBlacklistCertificates)
 	log.Fatal(http.ListenAndServe(":8080", nil))
