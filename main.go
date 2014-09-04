@@ -16,6 +16,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Lukasa/mkcert/certs"
 	"log"
 	"net/http"
@@ -119,6 +120,8 @@ func listAllCerts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", fmt.Sprintf("%v", len(b)))
 	w.Write(b)
 }
 
