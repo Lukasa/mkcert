@@ -21,11 +21,24 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
 
+// Global state! It's evil!
+//
+// More seriously, this is a performance optimisation. The certificate map
+// can be quite large, and copying it around is a stupid waste of everyone's
+// time when 99.99% of the time we just want to read from it. Instead, we use
+// a RWMutex to ensure that we can always read from this structure, but cannot
+// read in the middle of a write.
+//
+// Arguably this is not idiomatic Go. If someone can show me an idiomatic
+// approach that doesn't copy memory like a fifth-grader copies math answers,
+// please let me know.
 var certificates certs.CertMap = nil
+var certMapLock *sync.RWMutex = new(sync.RWMutex)
 
 type CertificateList struct {
 	Certificates []string
@@ -41,7 +54,9 @@ func updateCertificates() {
 	_, _, objects := certs.ParseInput(resp.Body)
 	resp.Body.Close()
 
+	certMapLock.Lock()
 	certificates = certs.OutputTrustedCerts(objects)
+	certMapLock.Unlock()
 }
 
 // Parses the exceptions from the path.
@@ -65,7 +80,10 @@ func getExceptions(path string, prefix string) map[string]interface{} {
 // friends are the labels to exclude from the list.
 func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 	exceptions := getExceptions(r.URL.Path, "/generate/")
+
+	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, false, exceptions)
+	certMapLock.RUnlock()
 }
 
 // serveWhitelistCertificates serves certificates using a whitelist. The
@@ -73,13 +91,19 @@ func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 // name1 and friends are the labels to exclude from the list.
 func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	exceptions := getExceptions(r.URL.Path, "/generate/all/except/")
+
+	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, true, exceptions)
+	certMapLock.RUnlock()
 }
 
 // listAllCerts provides a JSON object that contains a list of all the
 // certificates in the bundle. Each key is a value that can be sent on the API.
 func listAllCerts(w http.ResponseWriter, r *http.Request) {
+	certMapLock.RLock()
 	labels := certs.OutputAllLabels(certificates)
+	certMapLock.RUnlock()
+
 	b, err := json.Marshal(CertificateList{labels})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
