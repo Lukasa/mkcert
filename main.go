@@ -49,6 +49,14 @@ func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 	certs.WriteCerts(w, certificates, false, exceptions)
 }
 
+// serveWhitelistCertificates serves certificates using a whitelist. The
+// expected form of the URL is: /generate/all/except/name1+name2+name3, where
+// name1 and friends are the labels to exclude from the list.
+func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
+	exceptions := getExceptions(r.URL.Path, "/generate/all/except/")
+	certs.WriteCerts(w, certificates, true, exceptions)
+}
+
 func main() {
 	// Before we do anything, TURN ON THE CPUS.
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -58,5 +66,6 @@ func main() {
 
 	// Start the HTTP server.
 	http.HandleFunc("/generate/", serveBlacklistCertificates)
+	http.HandleFunc("/generate/all/except/", serveWhitelistCertificates)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
