@@ -4,7 +4,6 @@ import (
 	"github.com/Lukasa/trustdeck/certs"
 	"log"
 	"net/http"
-	"os"
 	"runtime"
 )
 
@@ -27,13 +26,18 @@ func updateCertificates() {
 	certificates = certs.OutputTrustedCerts(objects, ignoreList)
 }
 
-func main() {
+func serveCertificates(w http.ResponseWriter, r *http.Request) {
+	certs.WriteCerts(w, certificates)
+}
 
+func main() {
 	// Before we do anything, TURN ON THE CPUS.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	// At start of day, populate the certificates.
 	updateCertificates()
 
-	certs.WriteCerts(os.Stdout, certificates)
+	// Start the HTTP server.
+	http.HandleFunc("/", serveCertificates)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

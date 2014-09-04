@@ -37,7 +37,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -279,17 +278,17 @@ func OutputTrustedCerts(objects []*Object, ignoreList map[string]interface{}) (p
 }
 
 // WriteCerts writes all certificates out to a file.
-func WriteCerts(out *os.File, certs CertMap) {
+func WriteCerts(out io.Writer, certs CertMap) {
 	for _, cert := range certs {
-		out.WriteString("\n")
+		io.WriteString(out, "\n")
 
-		out.WriteString("# Issuer: " + cert.Issuer + "\n")
-		out.WriteString("# Subject: " + cert.Subject + "\n")
-		out.WriteString("# Label: " + cert.Label + "\n")
-		out.WriteString("# Serial: " + cert.Serial + "\n")
-		out.WriteString("# MD5 Fingerprint: " + cert.MD5Fingerprint + "\n")
-		out.WriteString("# SHA1 Fingerprint: " + cert.SHA1Fingerprint + "\n")
-		out.WriteString("# SHA256 Fingerprint: " + cert.SHA256Fingerprint + "\n")
+		io.WriteString(out, "# Issuer: "+cert.Issuer+"\n")
+		io.WriteString(out, "# Subject: "+cert.Subject+"\n")
+		io.WriteString(out, "# Label: "+cert.Label+"\n")
+		io.WriteString(out, "# Serial: "+cert.Serial+"\n")
+		io.WriteString(out, "# MD5 Fingerprint: "+cert.MD5Fingerprint+"\n")
+		io.WriteString(out, "# SHA1 Fingerprint: "+cert.SHA1Fingerprint+"\n")
+		io.WriteString(out, "# SHA256 Fingerprint: "+cert.SHA256Fingerprint+"\n")
 		pem.Encode(out, cert.PEMBlock)
 	}
 }
