@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
@@ -57,6 +58,14 @@ func updateCertificates() {
 	certMapLock.Lock()
 	certificates = certs.OutputTrustedCerts(objects)
 	certMapLock.Unlock()
+}
+
+// certUpdateLoop spins in a loop updating the certificates once a day.
+func certUpdateLoop() {
+	for {
+		updateCertificates()
+		<-time.After(24 * time.Hour)
+	}
 }
 
 // Parses the exceptions from the path.
@@ -117,8 +126,8 @@ func main() {
 	// Before we do anything, TURN ON THE CPUS.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	// At start of day, populate the certificates.
-	updateCertificates()
+	// Start the certificate update loop.
+	go certUpdateLoop()
 
 	// Start the HTTP server.
 	http.HandleFunc("/labels/", listAllCerts)
