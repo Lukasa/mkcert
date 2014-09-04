@@ -76,6 +76,8 @@ func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	certs.WriteCerts(w, certificates, true, exceptions)
 }
 
+// listAllCerts provides a JSON object that contains a list of all the
+// certificates in the bundle. Each key is a value that can be sent on the API.
 func listAllCerts(w http.ResponseWriter, r *http.Request) {
 	labels := certs.OutputAllLabels(certificates)
 	b, err := json.Marshal(CertificateList{labels})
