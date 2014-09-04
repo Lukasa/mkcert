@@ -10,13 +10,12 @@ import (
 
 const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
 
-func main() {
+var certificates certs.CertMap = nil
+
+func updateCertificates() {
 	ignoreList := map[string]interface{}{}
 
-	// Before we do anything, TURN ON THE CPUS.
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	// New, better basic test: make the web request!
+	// Now, grab the certificates.
 	resp, err := http.Get(CERT_URL)
 	if err != nil {
 		log.Fatalf("Unable to get cert file: %s", err)
@@ -25,6 +24,16 @@ func main() {
 	_, _, objects := certs.ParseInput(resp.Body)
 	resp.Body.Close()
 
-	parsedCerts := certs.OutputTrustedCerts(objects, ignoreList)
-	certs.WriteCerts(os.Stdout, parsedCerts)
+	certificates = certs.OutputTrustedCerts(objects, ignoreList)
+}
+
+func main() {
+
+	// Before we do anything, TURN ON THE CPUS.
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// At start of day, populate the certificates.
+	updateCertificates()
+
+	certs.WriteCerts(os.Stdout, certificates)
 }
