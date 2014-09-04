@@ -192,7 +192,7 @@ func OutputAllLabels(certs CertMap) (labels []string) {
 
 // outputTrustedCerts writes a series of PEM encoded certificates to out by
 // finding certificates and their trust records in objects.
-func OutputTrustedCerts(objects []*Object, ignoreList map[string]interface{}) (parsedCerts CertMap) {
+func OutputTrustedCerts(objects []*Object) (parsedCerts CertMap) {
 	certs := filterObjectsByClass(objects, "CKO_CERTIFICATE")
 	trusts := filterObjectsByClass(objects, "CKO_NSS_TRUST")
 	parsedCerts = make(CertMap)
@@ -204,10 +204,6 @@ func OutputTrustedCerts(objects []*Object, ignoreList map[string]interface{}) (p
 		digest := hash.Sum(nil)
 
 		label := string(cert.attrs["CKA_LABEL"].value)
-		if _, present := ignoreList[strings.Trim(label, "\"")]; present {
-			log.Printf("Skipping explicitly ignored certificate: %s", label)
-			continue
-		}
 
 		x509, err := x509.ParseCertificate(derBytes)
 		if err != nil {
@@ -277,9 +273,21 @@ func OutputTrustedCerts(objects []*Object, ignoreList map[string]interface{}) (p
 	return
 }
 
-// WriteCerts writes all certificates out to a file.
-func WriteCerts(out io.Writer, certs CertMap) {
+// WriteCerts writes all certificates out to a file. If whitelist is true the
+// exceptions are a whitelist and will be emitted: if whitelist is false the
+// exceptions are a blacklist and will not be emitted.
+func WriteCerts(out io.Writer, certs CertMap, whitelist bool, exceptions map[string]interface{}) {
 	for _, cert := range certs {
+		_, isException := exceptions[strings.Trim(cert.Label, "\"")]
+
+		if whitelist && !isException {
+			log.Printf("Skipping implicitly ignored certificate: %s", cert.Label)
+			continue
+		} else if !whitelist && isException {
+			log.Printf("Skipping explicitly ignored certificate: %s", cert.Label)
+			continue
+		}
+
 		io.WriteString(out, "\n")
 
 		io.WriteString(out, "# Issuer: "+cert.Issuer+"\n")

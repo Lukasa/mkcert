@@ -12,8 +12,6 @@ const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/n
 var certificates certs.CertMap = nil
 
 func updateCertificates() {
-	ignoreList := map[string]interface{}{}
-
 	// Now, grab the certificates.
 	resp, err := http.Get(CERT_URL)
 	if err != nil {
@@ -23,11 +21,12 @@ func updateCertificates() {
 	_, _, objects := certs.ParseInput(resp.Body)
 	resp.Body.Close()
 
-	certificates = certs.OutputTrustedCerts(objects, ignoreList)
+	certificates = certs.OutputTrustedCerts(objects)
 }
 
 func serveCertificates(w http.ResponseWriter, r *http.Request) {
-	certs.WriteCerts(w, certificates)
+	exceptions := make(map[string]interface{})
+	certs.WriteCerts(w, certificates, false, exceptions)
 }
 
 func main() {
