@@ -90,6 +90,7 @@ func getExceptions(path string, prefix string) map[string]interface{} {
 // friends are the labels to exclude from the list.
 func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 	exceptions := getExceptions(r.URL.Path, "/generate/")
+	w.Header().Set("Content-Type", "application/x-pem-file")
 
 	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, false, exceptions)
@@ -101,6 +102,7 @@ func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 // name1 and friends are the labels to exclude from the list.
 func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	exceptions := getExceptions(r.URL.Path, "/generate/all/except/")
+	w.Header().Set("Content-Type", "application/x-pem-file")
 
 	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, true, exceptions)
