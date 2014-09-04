@@ -65,7 +65,7 @@ func main() {
 	updateCertificates()
 
 	// Start the HTTP server.
-	http.HandleFunc("/generate/", serveBlacklistCertificates)
-	http.HandleFunc("/generate/all/except/", serveWhitelistCertificates)
+	http.HandleFunc("/generate/", serveWhitelistCertificates)
+	http.HandleFunc("/generate/all/except/", serveBlacklistCertificates)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
