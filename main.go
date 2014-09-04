@@ -3,22 +3,25 @@ package main
 import (
 	"github.com/Lukasa/trustdeck/certs"
 	"log"
+	"net/http"
 	"os"
 	"runtime"
 )
+
+const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
 
 func main() {
 	// Before we do anything, TURN ON THE CPUS.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	// As an initial basic test that the logic works, let's parse a file.
-	infile, err := os.Open("certdata.txt")
+	// New, better basic test: make the web request!
+	resp, err := http.Get(CERT_URL)
 	if err != nil {
-		log.Fatalf("Failed to open input file: %s", err)
+		log.Fatalf("Unable to get cert file: %s", err)
 	}
 
-	_, _, objects := certs.ParseInput(infile)
-	infile.Close()
+	_, _, objects := certs.ParseInput(resp.Body)
+	resp.Body.Close()
 
 	certs.OutputTrustedCerts(os.Stdout, objects)
 }
