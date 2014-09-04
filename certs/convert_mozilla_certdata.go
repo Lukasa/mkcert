@@ -55,6 +55,20 @@ type Attribute struct {
 	value    []byte
 }
 
+// Certificate is an in-memory representation of a certificate.
+type Certificate struct {
+	Issuer            string
+	Subject           string
+	Label             string
+	Serial            string
+	MD5Fingerprint    string
+	SHA1Fingerprint   string
+	SHA256Fingerprint string
+	PEMBlock          *pem.Block
+}
+
+type CertMap map[string]Certificate
+
 var (
 	// ignoreList maps from CKA_LABEL values (from the upstream roots file)
 	// to an optional comment which is displayed when skipping matching
@@ -168,13 +182,10 @@ func ParseInput(inFile io.Reader) (license, cvsId string, objects []*Object) {
 	return
 }
 
-// GetAllLabels returns all the certificate labels from the file.
-func OutputAllLabels(objects []*Object) (labels []string) {
-	certs := filterObjectsByClass(objects, "CKO_CERTIFICATE")
-
+// GetAllLabels returns all the certificate labels from the parsed certificates.
+func OutputAllLabels(certs CertMap) (labels []string) {
 	for _, cert := range certs {
-		label := string(cert.attrs["CKA_LABEL"].value)
-		labels = append(labels, label)
+		labels = append(labels, cert.Label)
 	}
 
 	return
@@ -182,9 +193,10 @@ func OutputAllLabels(objects []*Object) (labels []string) {
 
 // outputTrustedCerts writes a series of PEM encoded certificates to out by
 // finding certificates and their trust records in objects.
-func OutputTrustedCerts(out *os.File, objects []*Object, ignoreList map[string]interface{}) {
+func OutputTrustedCerts(objects []*Object, ignoreList map[string]interface{}) (parsedCerts CertMap) {
 	certs := filterObjectsByClass(objects, "CKO_CERTIFICATE")
 	trusts := filterObjectsByClass(objects, "CKO_NSS_TRUST")
+	parsedCerts = make(CertMap)
 
 	for _, cert := range certs {
 		derBytes := cert.attrs["CKA_VALUE"].value
@@ -250,16 +262,35 @@ func OutputTrustedCerts(out *os.File, objects []*Object, ignoreList map[string]i
 
 		block := &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}
 
+		parsedCert := Certificate{
+			nameToString(x509.Issuer),
+			nameToString(x509.Subject),
+			label,
+			x509.SerialNumber.String(),
+			fingerprintString(crypto.MD5, x509.Raw),
+			fingerprintString(crypto.SHA1, x509.Raw),
+			fingerprintString(crypto.SHA256, x509.Raw),
+			block,
+		}
+		parsedCerts[parsedCert.Label] = parsedCert
+	}
+
+	return
+}
+
+// WriteCerts writes all certificates out to a file.
+func WriteCerts(out *os.File, certs CertMap) {
+	for _, cert := range certs {
 		out.WriteString("\n")
 
-		out.WriteString("# Issuer: " + nameToString(x509.Issuer) + "\n")
-		out.WriteString("# Subject: " + nameToString(x509.Subject) + "\n")
-		out.WriteString("# Label: " + label + "\n")
-		out.WriteString("# Serial: " + x509.SerialNumber.String() + "\n")
-		out.WriteString("# MD5 Fingerprint: " + fingerprintString(crypto.MD5, x509.Raw) + "\n")
-		out.WriteString("# SHA1 Fingerprint: " + fingerprintString(crypto.SHA1, x509.Raw) + "\n")
-		out.WriteString("# SHA256 Fingerprint: " + fingerprintString(crypto.SHA256, x509.Raw) + "\n")
-		pem.Encode(out, block)
+		out.WriteString("# Issuer: " + cert.Issuer + "\n")
+		out.WriteString("# Subject: " + cert.Subject + "\n")
+		out.WriteString("# Label: " + cert.Label + "\n")
+		out.WriteString("# Serial: " + cert.Serial + "\n")
+		out.WriteString("# MD5 Fingerprint: " + cert.MD5Fingerprint + "\n")
+		out.WriteString("# SHA1 Fingerprint: " + cert.SHA1Fingerprint + "\n")
+		out.WriteString("# SHA256 Fingerprint: " + cert.SHA256Fingerprint + "\n")
+		pem.Encode(out, cert.PEMBlock)
 	}
 }
 

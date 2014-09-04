@@ -25,5 +25,6 @@ func main() {
 	_, _, objects := certs.ParseInput(resp.Body)
 	resp.Body.Close()
 
-	certs.OutputTrustedCerts(os.Stdout, objects, ignoreList)
+	parsedCerts := certs.OutputTrustedCerts(objects, ignoreList)
+	certs.WriteCerts(os.Stdout, parsedCerts)
 }
