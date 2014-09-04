@@ -171,7 +171,7 @@ func ParseInput(inFile io.Reader) (license, cvsId string, objects []*Object) {
 
 // outputTrustedCerts writes a series of PEM encoded certificates to out by
 // finding certificates and their trust records in objects.
-func outputTrustedCerts(out *os.File, objects []*Object) {
+func OutputTrustedCerts(out *os.File, objects []*Object) {
 	certs := filterObjectsByClass(objects, "CKO_CERTIFICATE")
 	trusts := filterObjectsByClass(objects, "CKO_NSS_TRUST")
 	filenames := make(map[string]bool)
