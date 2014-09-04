@@ -234,7 +234,7 @@ func OutputTrustedCerts(out *os.File, objects []*Object, ignoreList map[string]i
 			log.Fatalf("Unknown trust value '%s' found for trust record starting on line %d", trustType, trust.startingLine)
 		}
 
-		if !trusted && !*includedUntrustedFlag {
+		if !trusted {
 			continue
 		}
 
@@ -273,9 +273,6 @@ func OutputTrustedCerts(out *os.File, objects []*Object, ignoreList map[string]i
 		}
 
 		out.WriteString("\n")
-		if !trusted {
-			out.WriteString("# NOT TRUSTED FOR SSL\n")
-		}
 
 		out.WriteString("# Issuer: " + nameToString(x509.Issuer) + "\n")
 		out.WriteString("# Subject: " + nameToString(x509.Subject) + "\n")
