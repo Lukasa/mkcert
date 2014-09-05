@@ -66,7 +66,7 @@ type Certificate struct {
 	PEMBlock          *pem.Block
 }
 
-type CertMap map[string]Certificate
+type CertList []*Certificate
 
 var (
 	// ignoreList maps from CKA_LABEL values (from the upstream roots file)
@@ -182,7 +182,7 @@ func ParseInput(inFile io.Reader) (license, cvsId string, objects []*Object) {
 }
 
 // GetAllLabels returns all the certificate labels from the parsed certificates.
-func OutputAllLabels(certs CertMap) (labels []string) {
+func OutputAllLabels(certs CertList) (labels []string) {
 	for _, cert := range certs {
 		labels = append(labels, strings.Trim(cert.Label, "\""))
 	}
@@ -192,10 +192,10 @@ func OutputAllLabels(certs CertMap) (labels []string) {
 
 // outputTrustedCerts writes a series of PEM encoded certificates to out by
 // finding certificates and their trust records in objects.
-func OutputTrustedCerts(objects []*Object) (parsedCerts CertMap) {
+func OutputTrustedCerts(objects []*Object) (parsedCerts CertList) {
 	certs := filterObjectsByClass(objects, "CKO_CERTIFICATE")
 	trusts := filterObjectsByClass(objects, "CKO_NSS_TRUST")
-	parsedCerts = make(CertMap)
+	parsedCerts = make(CertList, 0)
 
 	for _, cert := range certs {
 		derBytes := cert.attrs["CKA_VALUE"].value
@@ -257,7 +257,7 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertMap) {
 
 		block := &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}
 
-		parsedCert := Certificate{
+		parsedCert := &Certificate{
 			nameToString(x509.Issuer),
 			nameToString(x509.Subject),
 			label,
@@ -267,7 +267,7 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertMap) {
 			fingerprintString(crypto.SHA256, x509.Raw),
 			block,
 		}
-		parsedCerts[parsedCert.Label] = parsedCert
+		parsedCerts = append(parsedCerts, parsedCert)
 	}
 
 	return
@@ -276,7 +276,7 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertMap) {
 // WriteCerts writes all certificates out to a file. If whitelist is true the
 // exceptions are a whitelist and will be emitted: if whitelist is false the
 // exceptions are a blacklist and will not be emitted.
-func WriteCerts(out io.Writer, certs CertMap, whitelist bool, exceptions map[string]interface{}) {
+func WriteCerts(out io.Writer, certs CertList, whitelist bool, exceptions map[string]interface{}) {
 	for _, cert := range certs {
 		_, isException := exceptions[strings.Trim(cert.Label, "\"")]
 

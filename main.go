@@ -39,7 +39,7 @@ const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/n
 // Arguably this is not idiomatic Go. If someone can show me an idiomatic
 // approach that doesn't copy memory like a fifth-grader copies math answers,
 // please let me know.
-var certificates certs.CertMap = nil
+var certificates certs.CertList = nil
 var certMapLock *sync.RWMutex = new(sync.RWMutex)
 
 type CertificateList struct {
