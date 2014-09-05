@@ -315,13 +315,37 @@ func SubstringWhitelistMatcher(whitelist []string) CertMatcher {
 	return func(c *Certificate) bool {
 		normalisedLabel := strings.ToLower(strings.Trim(c.Label, "\""))
 		for _, label := range internal_whitelist {
-			log.Printf("Comparing %v and %v", label, normalisedLabel)
 			if strings.Contains(normalisedLabel, label) {
 				return true
 			}
 		}
 
 		return false
+	}
+}
+
+// SubstringBlacklistMatcher builds a matching function that emits certificates
+// when the all-lowercase label contains any of the all-lowercase blacklist,
+// and otherwise does not emit a certificate. This allows for strings like
+// 'comodo' to match all comodo certificates while not matching others.
+//
+// This is not the most secure way to match certificates! Verify the output.
+func SubstringBlacklistMatcher(blacklist []string) CertMatcher {
+	// Normalise the blacklist
+	internal_blacklist := make([]string, len(blacklist))
+	for i, val := range blacklist {
+		internal_blacklist[i] = strings.ToLower(val)
+	}
+
+	return func(c *Certificate) bool {
+		normalisedLabel := strings.ToLower(strings.Trim(c.Label, "\""))
+		for _, label := range internal_blacklist {
+			if strings.Contains(normalisedLabel, label) {
+				return false
+			}
+		}
+
+		return true
 	}
 }
 

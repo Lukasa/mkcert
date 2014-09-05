@@ -86,8 +86,8 @@ func getExceptions(path string, prefix string) map[string]interface{} {
 }
 
 // serveBlacklistCertificates serves certificates using a blacklist. The
-// expected form of the URL is: /generate/name1+name2+name3, where name1 and
-// friends are the labels to exclude from the list.
+// expected form of the URL is: /generate/all/except/name1+name2+name3, where
+// name1 and friends are the labels to exclude from the list.
 func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 	exceptions := getExceptions(r.URL.Path, "/generate/all/except/")
 	w.Header().Set("Content-Type", "application/x-pem-file")
@@ -98,8 +98,8 @@ func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 }
 
 // serveWhitelistCertificates serves certificates using a whitelist. The
-// expected form of the URL is: /generate/all/except/name1+name2+name3, where
-// name1 and friends are the labels to exclude from the list.
+// expected form of the URL is: /generate/name1+name2+name3, where
+// name1 and friends are the labels to include in the list.
 func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	exceptions := getExceptions(r.URL.Path, "/generate/")
 	w.Header().Set("Content-Type", "application/x-pem-file")
@@ -110,7 +110,7 @@ func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 }
 
 // serveFuzzyWhitelistCertificates serves certificates using a whitelist. The
-// expected form of the URL is /generate/name1+name2+nam3, where name1 and
+// expected form of the URL is /generate/name1+name2+name3, where name1 and
 // friends are the labels to include in the list.
 //
 // This uses fuzzy matching: specifically, if any of the label fragments
@@ -127,6 +127,27 @@ func serveFuzzyWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 
 	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, certs.SubstringWhitelistMatcher(exceptions))
+	certMapLock.RUnlock()
+}
+
+// serveFuzzyBlacklistCertificates serves certificates using a blacklist. The
+// expected form of the URL is /generate/all/except/name1+name2+name3, where
+// name1 and friends are the labels to exclude from the list.
+//
+// This uses fuzzy matching: specifically, if any of the label fragments
+// passed appear in the label then a cert will be considered to match. This is
+// not secure but is clean. Verify the output you get!
+func serveFuzzyBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
+	exceptionsMap := getExceptions(r.URL.Path, "/generate/all/except/")
+	exceptions := make([]string, 0, len(exceptionsMap))
+	for k, _ := range exceptionsMap {
+		exceptions = append(exceptions, k)
+	}
+
+	w.Header().Set("Content-Type", "application/x-pem-file")
+
+	certMapLock.RLock()
+	certs.WriteCerts(w, certificates, certs.SubstringBlacklistMatcher(exceptions))
 	certMapLock.RUnlock()
 }
 
@@ -158,6 +179,6 @@ func main() {
 	// Start the HTTP server.
 	http.HandleFunc("/labels/", listAllCerts)
 	http.HandleFunc("/generate/", serveFuzzyWhitelistCertificates)
-	http.HandleFunc("/generate/all/except/", serveBlacklistCertificates)
+	http.HandleFunc("/generate/all/except/", serveFuzzyBlacklistCertificates)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
