@@ -109,6 +109,27 @@ func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	certMapLock.RUnlock()
 }
 
+// serveFuzzyWhitelistCertificates serves certificates using a whitelist. The
+// expected form of the URL is /generate/name1+name2+nam3, where name1 and
+// friends are the labels to include in the list.
+//
+// This uses fuzzy matching: specifically, if any of the label fragments
+// passed appear in the label then a cert will be considered to match. This is
+// not secure but is clean. Verify the output you get!
+func serveFuzzyWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
+	exceptionsMap := getExceptions(r.URL.Path, "/generate/")
+	exceptions := make([]string, 0, len(exceptionsMap))
+	for k, _ := range exceptionsMap {
+		exceptions = append(exceptions, k)
+	}
+
+	w.Header().Set("Content-Type", "application/x-pem-file")
+
+	certMapLock.RLock()
+	certs.WriteCerts(w, certificates, certs.SubstringWhitelistMatcher(exceptions))
+	certMapLock.RUnlock()
+}
+
 // listAllCerts provides a JSON object that contains a list of all the
 // certificates in the bundle. Each key is a value that can be sent on the API.
 func listAllCerts(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +157,7 @@ func main() {
 
 	// Start the HTTP server.
 	http.HandleFunc("/labels/", listAllCerts)
-	http.HandleFunc("/generate/", serveWhitelistCertificates)
+	http.HandleFunc("/generate/", serveFuzzyWhitelistCertificates)
 	http.HandleFunc("/generate/all/except/", serveBlacklistCertificates)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
