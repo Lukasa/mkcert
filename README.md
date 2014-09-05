@@ -18,9 +18,14 @@ the list can be passed to the other API endpoints to refer to a certificate.
 ### /generate/<certs>
 
 Builds a PEM file containing only the root certificates specified. The format
-of `<certs>` is a `+`-separated string. Therefore, to build a `.pem` file that
-contains "GeoTrust Global CA" and "QuoVadis Root CA", you would issue a GET
-request to `/generate/GeoTrust%20Global%20CA+QuoVadis%20Root%20CA`.
+of `<certs>` is a `+`-separated string. This string will be used to perform
+'fuzzy-ish' matching to certificate labels. For example, if one of your
+`<certs>` strings is `comodo`, any label that contains the sequence of
+characters `comodo` (case-insensitively) will match.
+
+Therefore, to build a `.pem` file that contains any GeoTrust certificate and
+any QuoVadis certificate, you would issue a GET request to
+`/generate/geotrust+quovadis`
 
 The response to this request has the body formatted exactly like a `.pem` file,
 suitable for saving immediately.
@@ -29,9 +34,13 @@ suitable for saving immediately.
 
 Builds a PEM file containing all root certificates *except* the root
 certificates specified. The format of `<certs>` is a `+`-separated string.
-Therefore, to build a `.pem` file that contains everything but
-"GeoTrust Global CA" and "QuoVadis Root CA", you would issue a GET request to
-`/generate/all/except/GeoTrust%20Global%20CA+QuoVadis%20Root%20CA`.
+This string will be used to perform 'fuzzy-ish' mapping to certificate labels.
+For example, if one of your `<certs>` strings is `comodo`, any label that
+contains the sequence of characters `comodo` (case-insensitively) will match.
+
+Therefore, to build a `.pem` file that contains everything but any GeoTrust
+certificates and any QuoVadis certificates, you would issue a GET request to
+`/generate/all/except/geotrust+quovadis`.
 
 The response to this request has the body formatted exactly like a `.pem` file,
 suitable for saving immediately.
