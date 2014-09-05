@@ -68,6 +68,8 @@ type Certificate struct {
 
 type CertList []*Certificate
 
+type CertMatcher func(*Certificate) bool
+
 var (
 	// ignoreList maps from CKA_LABEL values (from the upstream roots file)
 	// to an optional comment which is displayed when skipping matching
@@ -273,18 +275,35 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertList) {
 	return
 }
 
-// WriteCerts writes all certificates out to a file. If whitelist is true the
-// exceptions are a whitelist and will be emitted: if whitelist is false the
-// exceptions are a blacklist and will not be emitted.
-func WriteCerts(out io.Writer, certs CertList, whitelist bool, exceptions map[string]interface{}) {
-	for _, cert := range certs {
-		_, isException := exceptions[strings.Trim(cert.Label, "\"")]
+// WhitelistMatcher builds a matching function that only emits certificates
+// that are in the whitelist.
+func WhitelistMatcher(whitelist map[string]interface{}) CertMatcher {
+	return func(c *Certificate) bool {
+		if _, present := whitelist[strings.Trim(c.Label, "\"")]; present {
+			return true
+		} else {
+			return false
+		}
+	}
+}
 
-		if whitelist && !isException {
-			log.Printf("Skipping implicitly ignored certificate: %s", cert.Label)
-			continue
-		} else if !whitelist && isException {
-			log.Printf("Skipping explicitly ignored certificate: %s", cert.Label)
+// BlacklistMatcher builds a matching function that only emits certificates
+// that are not in the blacklist.
+func BlacklistMatcher(blacklist map[string]interface{}) CertMatcher {
+	return func(c *Certificate) bool {
+		if _, present := blacklist[strings.Trim(c.Label, "\"")]; present {
+			return false
+		} else {
+			return true
+		}
+	}
+}
+
+// WriteCerts writes certificates out if they match a specific filter criteria.
+func WriteCerts(out io.Writer, certs CertList, matcher CertMatcher) {
+	for _, cert := range certs {
+		if !matcher(cert) {
+			log.Printf("Skipping certificate %s", cert.Label)
 			continue
 		}
 

@@ -93,7 +93,7 @@ func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/x-pem-file")
 
 	certMapLock.RLock()
-	certs.WriteCerts(w, certificates, false, exceptions)
+	certs.WriteCerts(w, certificates, certs.BlacklistMatcher(exceptions))
 	certMapLock.RUnlock()
 }
 
@@ -105,7 +105,7 @@ func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/x-pem-file")
 
 	certMapLock.RLock()
-	certs.WriteCerts(w, certificates, true, exceptions)
+	certs.WriteCerts(w, certificates, certs.WhitelistMatcher(exceptions))
 	certMapLock.RUnlock()
 }
 
