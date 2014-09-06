@@ -9,13 +9,13 @@ Currently mkcert is just an API with no pretty frontend. That's in the works.
 
 mkcert has the following endpoints:
 
-### /labels/
+### `GET /labels/`
 
 Returns a JSON object containing one key (`Certificates`) whose value is a list
 of all the certificate labels in the default trust store. Each of the items in
 the list can be passed to the other API endpoints to refer to a certificate.
 
-### GET /generate/<certs>
+### `GET /generate/<certs>`
 
 Builds a PEM file containing only the root certificates specified. The format
 of `<certs>` is a `+`-separated string. This string will be used to perform
@@ -30,7 +30,7 @@ any QuoVadis certificate, you would issue a GET request to
 The response to this request has the body formatted exactly like a `.pem` file,
 suitable for saving immediately.
 
-### GET /generate/all/except/<certs>
+### `GET /generate/all/except/<certs>`
 
 Builds a PEM file containing all root certificates *except* the root
 certificates specified. The format of `<certs>` is a `+`-separated string.
@@ -45,7 +45,7 @@ certificates and any QuoVadis certificates, you would issue a GET request to
 The response to this request has the body formatted exactly like a `.pem` file,
 suitable for saving immediately.
 
-### POST /generate/
+### `POST /generate/`
 
 Builds a PEM file containing only the root certificates specified. The root
 certs are specified in the request body. The format of the request body is a
@@ -58,7 +58,7 @@ would POST the following body:
 The response to this request has the body formatted exactly like a `.pem` file,
 suitable for saving immediately.
 
-### POST /generate/all/except/
+### `POST /generate/all/except/`
 
 Builds a PEM file containing all but the root certificates specified. The root
 certs are specified in the request body. The format of the request body is a
