@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Lukasa/mkcert/certs"
+	"io"
 	"log"
 	"net/http"
 	"runtime"
@@ -70,7 +71,7 @@ func certUpdateLoop() {
 }
 
 // Parses the exceptions from the path.
-func getExceptions(path string, prefix string) map[string]interface{} {
+func getExceptionsFromPath(path string, prefix string) map[string]interface{} {
 	// Remove the prefix.
 	query := string(path[len(prefix):])
 
@@ -85,11 +86,41 @@ func getExceptions(path string, prefix string) map[string]interface{} {
 	return exceptions
 }
 
+// Parses the exceptions from a JSON-encoded body.
+func getExceptionsFromBody(r *http.Request) (map[string]interface{}, error) {
+	// If there's no body immediately return an empty map.
+	exceptions := make(map[string]interface{})
+
+	if r.ContentLength == 0 {
+		return exceptions, nil
+	}
+
+	// Decode the JSON from the body.
+	decoder := json.NewDecoder(r.Body)
+	var listExceptions []string
+
+	err := decoder.Decode(&listExceptions)
+	if err != nil && err != io.EOF {
+		return exceptions, err
+	}
+
+	for _, exception := range listExceptions {
+		exceptions[exception] = nil
+	}
+
+	return exceptions, nil
+}
+
 // serveBlacklistCertificates serves certificates using a blacklist. The
-// expected form of the URL is: /generate/all/except/name1+name2+name3, where
-// name1 and friends are the labels to exclude from the list.
+// expected form of the URL is: /generate/all/except/. We expect a request
+// body that contains a JSON list of exact labels to exclude.
 func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
-	exceptions := getExceptions(r.URL.Path, "/generate/all/except/")
+	exceptions, err := getExceptionsFromBody(r)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/x-pem-file")
 
 	certMapLock.RLock()
@@ -98,10 +129,16 @@ func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 }
 
 // serveWhitelistCertificates serves certificates using a whitelist. The
-// expected form of the URL is: /generate/name1+name2+name3, where
-// name1 and friends are the labels to include in the list.
+// expected form of the URL is: /generate/. We expect a request body that
+// contains a JSON list of exact labels to include
 func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
-	exceptions := getExceptions(r.URL.Path, "/generate/")
+	exceptions, err := getExceptionsFromBody(r)
+	if err != nil {
+		log.Printf("Bad request: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/x-pem-file")
 
 	certMapLock.RLock()
@@ -117,7 +154,7 @@ func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 // passed appear in the label then a cert will be considered to match. This is
 // not secure but is clean. Verify the output you get!
 func serveFuzzyWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
-	exceptionsMap := getExceptions(r.URL.Path, "/generate/")
+	exceptionsMap := getExceptionsFromPath(r.URL.Path, "/generate/")
 	exceptions := make([]string, 0, len(exceptionsMap))
 	for k, _ := range exceptionsMap {
 		exceptions = append(exceptions, k)
@@ -138,7 +175,7 @@ func serveFuzzyWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 // passed appear in the label then a cert will be considered to match. This is
 // not secure but is clean. Verify the output you get!
 func serveFuzzyBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
-	exceptionsMap := getExceptions(r.URL.Path, "/generate/all/except/")
+	exceptionsMap := getExceptionsFromPath(r.URL.Path, "/generate/all/except/")
 	exceptions := make([]string, 0, len(exceptionsMap))
 	for k, _ := range exceptionsMap {
 		exceptions = append(exceptions, k)
@@ -149,6 +186,32 @@ func serveFuzzyBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, certs.SubstringBlacklistMatcher(exceptions))
 	certMapLock.RUnlock()
+}
+
+// whitelist is the response handler for the /generate/ URL endpoint. It
+// handles the various requests that can be made to that endpoint.
+func whitelist(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		serveFuzzyWhitelistCertificates(w, r)
+	case "POST":
+		serveWhitelistCertificates(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// blacklist is the response handler for the /generate/all/except/ URL
+// endpoint. It handles the various requests that can be made to that endpoint.
+func blacklist(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		serveFuzzyBlacklistCertificates(w, r)
+	case "POST":
+		serveBlacklistCertificates(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
 }
 
 // listAllCerts provides a JSON object that contains a list of all the
@@ -178,7 +241,7 @@ func main() {
 
 	// Start the HTTP server.
 	http.HandleFunc("/labels/", listAllCerts)
-	http.HandleFunc("/generate/", serveFuzzyWhitelistCertificates)
-	http.HandleFunc("/generate/all/except/", serveFuzzyBlacklistCertificates)
+	http.HandleFunc("/generate/", whitelist)
+	http.HandleFunc("/generate/all/except/", blacklist)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
