@@ -186,7 +186,8 @@ func ParseInput(inFile io.Reader) (license, cvsId string, objects []*Object) {
 // GetAllLabels returns all the certificate labels from the parsed certificates.
 func OutputAllLabels(certs CertList) (labels []string) {
 	for _, cert := range certs {
-		labels = append(labels, strings.Trim(cert.Label, "\""))
+		escapedLabel := unescapeLabel(strings.Trim(cert.Label, "\""))
+		labels = append(labels, escapedLabel)
 	}
 
 	return
@@ -279,7 +280,8 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertList) {
 // that are in the whitelist.
 func WhitelistMatcher(whitelist map[string]interface{}) CertMatcher {
 	return func(c *Certificate) bool {
-		if _, present := whitelist[strings.Trim(c.Label, "\"")]; present {
+		escapedLabel := unescapeLabel(strings.Trim(c.Label, "\""))
+		if _, present := whitelist[escapedLabel]; present {
 			return true
 		} else {
 			return false
@@ -291,7 +293,8 @@ func WhitelistMatcher(whitelist map[string]interface{}) CertMatcher {
 // that are not in the blacklist.
 func BlacklistMatcher(blacklist map[string]interface{}) CertMatcher {
 	return func(c *Certificate) bool {
-		if _, present := blacklist[strings.Trim(c.Label, "\"")]; present {
+		escapedLabel := unescapeLabel(strings.Trim(c.Label, "\""))
+		if _, present := blacklist[escapedLabel]; present {
 			return false
 		} else {
 			return true
@@ -313,7 +316,9 @@ func SubstringWhitelistMatcher(whitelist []string) CertMatcher {
 	}
 
 	return func(c *Certificate) bool {
-		normalisedLabel := strings.ToLower(strings.Trim(c.Label, "\""))
+		escapedLabel := unescapeLabel(strings.Trim(c.Label, "\""))
+		normalisedLabel := strings.ToLower(escapedLabel)
+
 		for _, label := range internal_whitelist {
 			if strings.Contains(normalisedLabel, label) {
 				return true
@@ -338,7 +343,9 @@ func SubstringBlacklistMatcher(blacklist []string) CertMatcher {
 	}
 
 	return func(c *Certificate) bool {
-		normalisedLabel := strings.ToLower(strings.Trim(c.Label, "\""))
+		escapedLabel := unescapeLabel(strings.Trim(c.Label, "\""))
+		normalisedLabel := strings.ToLower(escapedLabel)
+
 		for _, label := range internal_blacklist {
 			if strings.Contains(normalisedLabel, label) {
 				return false
