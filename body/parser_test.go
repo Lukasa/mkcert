@@ -257,3 +257,15 @@ NOsF/5oirpt9P/FlUQqmMGqz9IgcgA38corog14=
 		}
 	}
 }
+
+func TestIsMultipartRequestTrue(t *testing.T) {
+	headerTrue := "multipart/form-encoded"
+	headerFalse := "application/json"
+
+	if !IsMultipartRequest(headerTrue) {
+		t.Errorf("Did not correctly detect multipart header.")
+	}
+	if IsMultipartRequest(headerFalse) {
+		t.Errorf("Incorrectly detected multipart header.")
+	}
+}

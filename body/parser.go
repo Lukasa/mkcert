@@ -21,13 +21,28 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime"
 	"mime/multipart"
+	"strings"
 )
 
 var (
 	MissingFormName error = errors.New("Missing form name.")
 	InvalidJSONPart error = errors.New("Invalid JSON part.")
 )
+
+// IsMultipartRequest returns true if the Content-Type header suggests a multipart-encoded
+// body. This is a utility method: ParseMultipartBody should only be called if this method returns
+// true.
+func IsMultipartRequest(contentType string) bool {
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		log.Printf("Error parsing Content-Type: %v", err)
+		return false
+	}
+
+	return strings.HasPrefix(mediaType, "multipart/")
+}
 
 // ParseMultipartBody takes a single HTTP request body that has been identified as being
 // multipart and parses it according to what mkcert expects. In this case, the expectation
