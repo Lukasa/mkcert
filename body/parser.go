@@ -33,15 +33,20 @@ var (
 
 // IsMultipartRequest returns true if the Content-Type header suggests a multipart-encoded
 // body. This is a utility method: ParseMultipartBody should only be called if this method returns
-// true.
-func IsMultipartRequest(contentType string) bool {
-	mediaType, _, err := mime.ParseMediaType(contentType)
+// true. Along with the boolean, this method returns the boundary string.
+func IsMultipartRequest(contentType string) (bool, string) {
+	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		log.Printf("Error parsing Content-Type: %v", err)
-		return false
+		return false, ""
 	}
 
-	return strings.HasPrefix(mediaType, "multipart/")
+	isMulti := strings.HasPrefix(mediaType, "multipart/")
+	if isMulti {
+		return isMulti, params["boundary"]
+	}
+
+	return false, ""
 }
 
 // ParseMultipartBody takes a single HTTP request body that has been identified as being

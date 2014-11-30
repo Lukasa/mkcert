@@ -259,13 +259,22 @@ NOsF/5oirpt9P/FlUQqmMGqz9IgcgA38corog14=
 }
 
 func TestIsMultipartRequestTrue(t *testing.T) {
-	headerTrue := "multipart/form-encoded"
+	headerTrue := "multipart/form-data; boundary=abcdef"
 	headerFalse := "application/json"
 
-	if !IsMultipartRequest(headerTrue) {
+	multi, boundary := IsMultipartRequest(headerTrue)
+	if !multi {
 		t.Errorf("Did not correctly detect multipart header.")
 	}
-	if IsMultipartRequest(headerFalse) {
+	if boundary != "abcdef" {
+		t.Errorf("Did not correct spot boundary")
+	}
+
+	multi, boundary = IsMultipartRequest(headerFalse)
+	if multi {
 		t.Errorf("Incorrectly detected multipart header.")
+	}
+	if boundary != "" {
+		t.Errorf("Incorrectly returned boundary from non-multipart header.")
 	}
 }
