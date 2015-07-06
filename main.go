@@ -122,6 +122,7 @@ func serveBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/x-pem-file")
+	w.Header().Set("Content-Disposition", "inline; filename=\"certs.pem\"")
 
 	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, certs.BlacklistMatcher(exceptions))
@@ -140,6 +141,7 @@ func serveWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/x-pem-file")
+	w.Header().Set("Content-Disposition", "inline; filename=\"certs.pem\"")
 
 	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, certs.WhitelistMatcher(exceptions))
@@ -161,6 +163,7 @@ func serveFuzzyWhitelistCertificates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/x-pem-file")
+	w.Header().Set("Content-Disposition", "inline; filename=\"certs.pem\"")
 
 	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, certs.SubstringWhitelistMatcher(exceptions))
@@ -182,6 +185,7 @@ func serveFuzzyBlacklistCertificates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/x-pem-file")
+	w.Header().Set("Content-Disposition", "inline; filename=\"certs.pem\"")
 
 	certMapLock.RLock()
 	certs.WriteCerts(w, certificates, certs.SubstringBlacklistMatcher(exceptions))
