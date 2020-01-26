@@ -39,6 +39,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -256,6 +257,27 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertList) {
 
 		if !trusted {
 			continue
+		}
+
+		distrustAfter := cert.attrs["CKA_NSS_SERVER_DISTRUST_AFTER"]
+		if distrustAfter.attrType == "CK_BBOOL" {
+			if string(distrustAfter.value) != "CK_FALSE" {
+				log.Fatalf("Unknown distrust after value '%s' found for certificate on line %d", distrustAfter.value, cert.startingLine)
+			}
+		} else if distrustAfter.attrType == "MULTILINE_OCTAL" {
+			// This is a date in the form YYMMDDHHMMSSZ.
+			layout := "060102150405Z"
+			t, err := time.Parse(layout, string(distrustAfter.value))
+			if err != nil {
+				log.Fatalf("Unable to parse distrust after value '%s' for certificate on line %d, error %s", distrustAfter.value, cert.startingLine, err)
+			}
+
+			if t.After(time.Now()) {
+				// This certificate is now distrusted.
+				continue
+			}
+		} else {
+			log.Fatalf("Unknown type '%s' for distrustAfter", distrustAfter.attrType)
 		}
 
 		block := &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}

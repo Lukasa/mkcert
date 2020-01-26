@@ -105,7 +105,7 @@ NOsF/5oirpt9P/FlUQqmMGqz9IgcgA38corog14=
 		t.Errorf("Incorrect SHA256: got %v, expected %v", cert.SHA256Fingerprint, expectedSHA256)
 	}
 	if cert.PEMBlock.Type != "CERTIFICATE" {
-		t.Errorf("Incorrect PEM type: got %v, expected CERTIFICATE")
+		t.Errorf("Incorrect PEM type: got %v, expected CERTIFICATE", cert.PEMBlock.Type)
 	}
 
 	pemParts := strings.Split(string(pem), "\n")
@@ -295,7 +295,7 @@ NOsF/5oirpt9P/FlUQqmMGqz9IgcgA38corog14=
 			t.Errorf("Incorrect SHA256: got %v, expected %v", cert.SHA256Fingerprint, expectedSHA256)
 		}
 		if cert.PEMBlock.Type != "CERTIFICATE" {
-			t.Errorf("Incorrect PEM type: got %v, expected CERTIFICATE")
+			t.Errorf("Incorrect PEM type: got %v, expected CERTIFICATE", cert.PEMBlock.Type)
 		}
 
 		if bytes.Compare(cert.PEMBlock.Bytes, expectedPem) != 0 {
