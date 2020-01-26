@@ -276,8 +276,11 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertList) {
 				// This certificate is now distrusted.
 				continue
 			}
+		} else if distrustAfter.attrType == "" {
+			// The field is missing. We assume this is the same as the "FALSE" case.
+			log.Printf("Certificate on line %d missing distrustAfter field", cert.startingLine)
 		} else {
-			log.Fatalf("Unknown type '%s' for distrustAfter", distrustAfter.attrType)
+			log.Fatalf("Unknown type '%s' for distrustAfter for certificate on line %d", distrustAfter.attrType, cert.startingLine)
 		}
 
 		block := &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}
