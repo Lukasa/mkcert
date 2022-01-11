@@ -1,5 +1,5 @@
 FROM docker.io/golang:bullseye@sha256:8d717e8a7fa8035f5cfdcdc86811ffd53b7bb17542f419f2a121c4c7533d29ee as builder
-ADD . /app
+COPY . /app
 WORKDIR /app
 RUN GOOS=linux GOARCH=amd64 go build -o dist/
 
