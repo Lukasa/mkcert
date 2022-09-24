@@ -272,7 +272,7 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertList) {
 				log.Fatalf("Unable to parse distrust after value '%s' for certificate on line %d, error %s", distrustAfter.value, cert.startingLine, err)
 			}
 
-			if t.After(time.Now()) {
+			if time.Now().After(t) {
 				// This certificate is now distrusted.
 				continue
 			}
