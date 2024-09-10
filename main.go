@@ -17,14 +17,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Lukasa/mkcert/certs"
 	"io"
 	"log"
 	"net/http"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Lukasa/mkcert/certs"
 )
 
 const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
@@ -237,9 +237,6 @@ func listAllCerts(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Before we do anything, TURN ON THE CPUS.
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
 	// Start the certificate update loop.
 	go certUpdateLoop()
 
