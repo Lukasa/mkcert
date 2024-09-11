@@ -17,13 +17,13 @@ package body
 import (
 	"encoding/json"
 	"errors"
-	"github.com/Lukasa/mkcert/certs"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime"
 	"mime/multipart"
 	"strings"
+
+	"github.com/Lukasa/mkcert/certs"
 )
 
 var (
@@ -98,7 +98,7 @@ func ParseMultipartBody(f io.Reader, boundary string) ([]string, []*certs.Certif
 				label = labelVals[0]
 			}
 
-			body, err := ioutil.ReadAll(p)
+			body, err := io.ReadAll(p)
 			if err != nil {
 				log.Printf("Unexpected IO error: %v.\n", err)
 				return nil, nil, err
