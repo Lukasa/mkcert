@@ -272,7 +272,11 @@ func OutputTrustedCerts(objects []*Object) (parsedCerts CertList) {
 				log.Fatalf("Unable to parse distrust after value '%s' for certificate on line %d, error %s", distrustAfter.value, cert.startingLine, err)
 			}
 
-			if time.Now().After(t) {
+			// The distrust date is for certificates issued after this date.
+			// The current maximum age of a WebPKI cert is 397 days, so if
+			// we're 398 days past the distrust date, it's impossible for
+			// there to be a valid cert.
+			if time.Now().After(t.Add(time.Hour * 24 * 398)) {
 				// This certificate is now distrusted.
 				continue
 			}
