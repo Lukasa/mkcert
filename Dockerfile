@@ -2,7 +2,7 @@ FROM docker.io/golang:1.23 as builder
 COPY . /app
 WORKDIR /app
 RUN go test ./...
-RUN GOOS=linux GOARCH=amd64 go build -o dist/
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o dist/
 
 FROM gcr.io/distroless/static-debian12:latest
 COPY --from=builder /app/dist/mkcert /bin/mkcert
