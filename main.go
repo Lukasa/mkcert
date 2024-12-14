@@ -15,10 +15,16 @@
 package main
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -28,6 +34,49 @@ import (
 )
 
 const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
+
+// We want to enable certificate pinning to a specific hash of the Mozilla
+// cert. However, Go doesn't make this available to us by default. For this
+// reason, we are actually going to create a custom dialer and do the
+// validation there.
+// This isn't very general, it hardcodes the certificate hash. This hash needs
+// recalculating if Mozilla change their certificate.
+var MOZILLA_CERT_HASH = []byte{
+	0xce, 0xa6, 0x59, 0xb0, 0xfb, 0xe7, 0x52, 0xbe, 0xd1, 0x3a, 0xbb, 0x53,
+	0x19, 0x34, 0x5b, 0x2f, 0xad, 0x16, 0x2d, 0x17, 0x3a, 0x34, 0x57, 0xe3,
+	0x18, 0x99, 0xd9, 0xeb, 0xf2, 0x47, 0xa4, 0x35,
+}
+
+func pinDialer(network, addr string) (net.Conn, error) {
+	conn, err := tls.Dial(network, addr, &tls.Config{})
+	if err != nil {
+		return conn, err
+	}
+
+	connectionState := conn.ConnectionState()
+	validPin := false
+
+	// I don't know what order the certs are in here, or if it's well defined.
+	// The docs don't say, so let's just always check the whole chain.
+	for _, cert := range connectionState.PeerCertificates {
+		certBytes, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		hash := sha256.Sum256(certBytes)
+		if bytes.Compare(hash[:], MOZILLA_CERT_HASH) == 0 {
+			validPin = true
+		}
+	}
+
+	if !validPin {
+		log.Print("No cert found matching pin.")
+		return nil, errors.New("No valid pin found.")
+	}
+
+	return conn, nil
+}
 
 // Global state! It's evil!
 //
@@ -48,8 +97,12 @@ type CertificateList struct {
 }
 
 func updateCertificates() {
+	// Build a client that checks for pinned certs.
+	client := &http.Client{}
+	client.Transport = &http.Transport{DialTLS: pinDialer}
+
 	// Now, grab the certificates.
-	resp, err := http.Get(CERT_URL)
+	resp, err := client.Get(CERT_URL)
 	if err != nil {
 		log.Fatalf("Unable to get cert file: %s", err)
 	}
