@@ -27,7 +27,8 @@ import (
 	"github.com/Lukasa/mkcert/certs"
 )
 
-const CERT_URL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
+// Certificates sourced from the latest beta release of Firefox
+const CERT_URL = "https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/beta/security/nss/lib/ckfw/builtins/certdata.txt"
 
 // Global state! It's evil!
 //
